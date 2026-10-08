@@ -19,6 +19,22 @@
     </div>
   </header>
 
+  <section class="output-bar" id="output-bar">
+    <div class="output-line">
+      <span data-i18n="output_label"></span>
+      <code id="output-dir"></code>
+      <button class="link" id="output-change" data-i18n="output_change"></button>
+      <button class="link desktop-only" id="output-open" data-i18n="output_open"></button>
+      <button class="link hidden" id="output-reset" data-i18n="output_reset"></button>
+    </div>
+    <form class="row hidden" id="output-form">
+      <input type="text" id="output-input" data-i18n-placeholder="output_placeholder">
+      <button class="primary" type="submit" data-i18n="output_save"></button>
+      <button type="button" id="output-cancel" data-i18n="cancel"></button>
+    </form>
+    <div class="error small hidden" id="output-error"></div>
+  </section>
+
   <nav class="tabbar">
     <div class="tabs-list" id="tabs-list" role="tablist"></div>
     <div class="tab-actions">

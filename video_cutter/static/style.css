@@ -74,6 +74,12 @@ button.link {
 .lang button { border: 0; border-radius: 0; padding: 6px 12px; font-size: 13px; font-weight: 600; }
 .lang button.active { background: var(--accent); color: var(--accent-text); }
 
+/* output folder */
+.output-bar { margin-top: 14px; font-size: 14px; }
+.output-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.output-bar .row { margin-top: 8px; }
+.output-bar input { flex: 1; min-width: 220px; }
+
 /* workspace tabs */
 .tabbar {
   display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;

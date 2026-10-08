@@ -12,6 +12,7 @@ from pathlib import Path
 from werkzeug.serving import make_server
 
 from .jobs import Registry
+from .messages import UserError
 
 
 class DesktopApi:
@@ -65,6 +66,31 @@ class DesktopApi:
         for entry in files:
             shutil.copyfile(entry["path"], folder / entry["name"])
         return {"saved": str(folder), "count": len(files)}
+
+    def choose_output_dir(self) -> dict:
+        """Ask for the folder where finished videos go and remember it."""
+        import webview
+
+        picked = self._window.create_file_dialog(
+            webview.FileDialog.FOLDER, directory=str(self._registry.output_dir)
+        )
+        if not picked:
+            return {"cancelled": True}
+        try:
+            folder = self._registry.set_output_dir(picked if isinstance(picked, str) else picked[0])
+        except UserError as exc:
+            return {"error": exc.to_json()}
+        return {"output_dir": str(folder)}
+
+    def open_folder(self, path: str) -> None:
+        """Open `path` (a folder) in the system file manager."""
+        Path(path).mkdir(parents=True, exist_ok=True)
+        if sys.platform == "win32":
+            os.startfile(path)  # noqa: S606 - opening a folder the user chose
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", path])
+        else:
+            subprocess.Popen(["xdg-open", path])
 
     def show_in_folder(self, path: str) -> None:
         """Open the system file manager with `path` selected."""

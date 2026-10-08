@@ -398,6 +398,7 @@ function renderResult(el, job, tab) {
   where.className = "muted small";
   const label = document.createElement("span");
   setT(label, files.length === 1 ? "also_saved_here" : "files_saved_here");
+  tab.saved = true; // already written into the output folder
   const code = document.createElement("code");
   code.textContent = files.length === 1 ? files[0].path : folderOf(files[0].path);
   const show = document.createElement("button");
@@ -753,6 +754,59 @@ function setupJoinTab(tab) {
 }
 
 // ======================================================================
+// Output folder
+// ======================================================================
+// Finished videos are written straight into this folder. In the desktop window
+// "Change" opens a native folder picker; in a browser the path is typed in.
+
+async function loadOutputDir() {
+  try {
+    renderOutputDir(await (await fetch("/api/settings")).json());
+  } catch (_) { /* the bar just stays empty */ }
+}
+
+function renderOutputDir(settings) {
+  $("#output-dir").textContent = settings.output_dir;
+  $("#output-reset").classList.toggle("hidden", settings.is_default);
+  $("#output-input").value = settings.output_dir;
+}
+
+async function changeOutputDir() {
+  showError($("#output-error"), null);
+  if (!document.body.classList.contains("desktop")) {
+    $("#output-form").classList.remove("hidden");
+    $("#output-input").focus();
+    return;
+  }
+  const res = await window.pywebview.api.choose_output_dir();
+  if (res.error) showError($("#output-error"), new AppError(res.error));
+  else if (!res.cancelled) loadOutputDir();
+}
+
+async function saveOutputDir(path) {
+  try {
+    renderOutputDir(await postJson("/api/settings", { output_dir: path }));
+    $("#output-form").classList.add("hidden");
+    showError($("#output-error"), null);
+  } catch (err) {
+    showError($("#output-error"), err);
+  }
+}
+
+$("#output-change").addEventListener("click", changeOutputDir);
+$("#output-reset").addEventListener("click", () => saveOutputDir(""));
+$("#output-open").addEventListener("click", () => window.pywebview.api.open_folder($("#output-dir").textContent));
+$("#output-cancel").addEventListener("click", () => {
+  $("#output-form").classList.add("hidden");
+  showError($("#output-error"), null);
+});
+$("#output-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const path = $("#output-input").value.trim();
+  if (path) saveOutputDir(path);
+});
+
+// ======================================================================
 // Start-up
 // ======================================================================
 
@@ -779,6 +833,7 @@ $("#new-join").addEventListener("click", () => createTab("join"));
   try { saved = localStorage.getItem("vc-lang"); } catch (_) { /* storage may be blocked */ }
   setLang(saved || "en");
   createTab("cut");
+  loadOutputDir();
   if (window.pywebview && window.pywebview.api) enableDesktop();
   else window.addEventListener("pywebviewready", enableDesktop);
 })();

@@ -33,6 +33,7 @@ EN: dict[str, str] = {
     "join_need_two": "Add at least two videos to join",
     "unexpected": "Something went wrong",
     "result_missing": "The result is not available any more",
+    "output_dir_invalid": "Can't save into this folder: {path}",
     # job stages and details
     "stage_queued": "Waiting in queue",
     "stage_downloading": "Downloading",

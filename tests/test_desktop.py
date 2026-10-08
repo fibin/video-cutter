@@ -11,7 +11,7 @@ class FakeWindow:
         self.answer = answer
         self.asked = None
 
-    def create_file_dialog(self, dialog_type, save_filename="", file_types=()):
+    def create_file_dialog(self, dialog_type, save_filename="", file_types=(), directory=""):
         self.asked = save_filename
         return self.answer
 
@@ -57,3 +57,16 @@ def test_save_result_cancelled(tmp_path):
 def test_save_result_unknown_job(tmp_path):
     api, _ = make_api(tmp_path, None)
     assert api.save_result("nope") == {"error": "result_missing"}
+
+
+def test_choose_output_dir_is_remembered(tmp_path):
+    folder = tmp_path / "My videos"
+    folder.mkdir()
+    api, _ = make_api(tmp_path, (str(folder),))
+    assert api.choose_output_dir() == {"output_dir": str(folder.resolve())}
+    assert Registry(tmp_path).output_dir == folder.resolve()
+
+
+def test_choose_output_dir_cancelled(tmp_path):
+    api, _ = make_api(tmp_path, None)
+    assert api.choose_output_dir() == {"cancelled": True}

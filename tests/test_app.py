@@ -175,3 +175,49 @@ def test_link_must_be_url(client):
     res = client.post("/api/youtube", json={"url": "hello"})
     assert res.status_code == 400
     assert res.get_json()["error"]["key"] == "link_invalid"
+
+
+def test_output_folder_setting(client, sample_video, tmp_path):
+    settings = client.get("/api/settings").get_json()
+    assert settings["is_default"]
+    assert settings["output_dir"] == settings["default_output_dir"]
+
+    target = tmp_path / "My clips"
+    res = client.post("/api/settings", json={"output_dir": str(target)})
+    assert res.status_code == 200
+    assert res.get_json()["output_dir"] == str(target.resolve())
+    assert target.is_dir()
+
+    # Results go into the chosen folder; a second cut never overwrites the first.
+    source = upload(client, sample_video).get_json()
+    names = []
+    for _ in range(2):
+        res = client.post("/api/cut", json={"source_id": source["id"], "segments": [{"start": "1", "end": "2"}]})
+        job = wait_for(client, res.get_json()["id"])
+        assert job["state"] == "done", job["error"]
+        names.append(job["result"]["files"][0]["name"])
+    assert names == ["Мой ролик - cut.mp4", "Мой ролик - cut (2).mp4"]
+    assert sorted(p.name for p in target.iterdir()) == sorted(names)
+
+    res = client.post("/api/settings", json={"output_dir": ""})
+    assert res.get_json()["is_default"]
+
+
+def test_output_folder_must_be_absolute(client):
+    res = client.post("/api/settings", json={"output_dir": "relative/folder"})
+    assert res.status_code == 400
+    assert res.get_json()["error"]["key"] == "output_dir_invalid"
+
+
+def test_failed_job_leaves_no_empty_file(client, sample_video, tmp_path, monkeypatch):
+    target = tmp_path / "out"
+    client.post("/api/settings", json={"output_dir": str(target)})
+    source = upload(client, sample_video).get_json()
+
+    def broken(*args, **kwargs):
+        raise app_module.ffmpeg_tools.FFmpegError("ffmpeg_failed", code=1)
+
+    monkeypatch.setattr(app_module.ffmpeg_tools, "cut_and_join", broken)
+    res = client.post("/api/cut", json={"source_id": source["id"], "segments": [{"start": "1", "end": "2"}]})
+    assert wait_for(client, res.get_json()["id"])["state"] == "error"
+    assert list(target.iterdir()) == []

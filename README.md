@@ -34,6 +34,8 @@ The first start takes a few minutes while dependencies download. On Windows and 
 
 The app works in tabs, like a browser. Each tab cuts one video or joins several, and tabs run at the same time: start one, open another with **+ Cut a video** or **+ Join videos**, and keep working. Two videos are encoded at once; the rest wait in a queue (shown as ⏳ on the tab). The **EN / UA** switch in the top right corner changes the language.
 
+Finished videos are saved straight into the folder shown under **Save results to** (by default `VideoCutter/results` in your home folder). Click **Change...** to pick another folder; the app remembers it. Old results are never overwritten: a second cut of the same video is saved as `... - cut (2).mp4`.
+
 **Cut a video**
 
 1. **Video.** Drop a file into the window or click to choose one. For YouTube, open the "YouTube link" tab, paste the link and press "Download".

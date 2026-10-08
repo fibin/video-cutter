@@ -132,10 +132,11 @@ def create_app(data_dir: Path | None = None, parallel_jobs: int | None = None) -
 
         def work(job: Job) -> dict:
             job.stage = "stage_cutting"
-            out_dir = registry.data_dir / "results"
+            out_dir = registry.output_dir
             files = []
             if not separate:
-                output = out_dir / f"{title} - cut-{job.id}.mp4"
+                output = registry.reserve_path(out_dir, f"{title} - cut")
+                job.partial.append(output)
 
                 def on_progress(fraction, piece, total):
                     job.percent = round(fraction * 100, 1)
@@ -143,10 +144,11 @@ def create_app(data_dir: Path | None = None, parallel_jobs: int | None = None) -
 
                 ffmpeg_tools.cut_and_join(source.path, segments, output, on_progress, info)
                 total = sum(s.duration for s in segments)
-                files.append(file_entry(job.id, 0, output, f"{title} - cut.mp4", total))
+                files.append(file_entry(job.id, 0, output, output.name, total))
             else:
                 # Each segment becomes its own file; progress spans all of them.
-                folder = out_dir / f"{title} - parts-{job.id}"
+                folder = registry.reserve_path(out_dir, f"{title} - parts", is_dir=True)
+                job.partial.append(folder)
                 grand_total = sum(s.duration for s in segments)
                 done_before = 0.0
                 for index, seg in enumerate(segments):
@@ -178,7 +180,8 @@ def create_app(data_dir: Path | None = None, parallel_jobs: int | None = None) -
 
         def work(job: Job) -> dict:
             job.stage = "stage_joining"
-            output = registry.data_dir / "results" / f"{title} - joined-{job.id}.mp4"
+            output = registry.reserve_path(registry.output_dir, f"{title} - joined")
+            job.partial.append(output)
             videos = [(s.path, s.info or ffmpeg_tools.probe(s.path)) for s in sources]
 
             def on_progress(fraction, piece, total):
@@ -188,7 +191,7 @@ def create_app(data_dir: Path | None = None, parallel_jobs: int | None = None) -
             ffmpeg_tools.join_videos(videos, output, on_progress)
             total = sum(s.duration for s in sources)
             return {
-                "files": [file_entry(job.id, 0, output, f"{title} - joined.mp4", total)],
+                "files": [file_entry(job.id, 0, output, output.name, total)],
                 "pieces": len(sources),
                 "duration_text": format_time(total),
             }
@@ -219,13 +222,35 @@ def create_app(data_dir: Path | None = None, parallel_jobs: int | None = None) -
     @app.get("/api/jobs/<job_id>/zip")
     def job_zip(job_id: str):
         files = finished_files(job_id)
-        archive = Path(files[0]["path"]).parent / f"all-{job_id}.zip"
+        # Kept in the data folder, not next to the videos in the user's output folder.
+        archive = registry.data_dir / "zips" / f"all-{job_id}.zip"
         if not archive.exists():
+            archive.parent.mkdir(parents=True, exist_ok=True)
             # Videos are already compressed, so store them as they are.
             with zipfile.ZipFile(archive, "w", zipfile.ZIP_STORED) as zf:
                 for entry in files:
                     zf.write(entry["path"], arcname=entry["name"])
-        name = Path(files[0]["name"]).stem.rsplit(" - part", 1)[0] + ".zip"
+        name = Path(files[0]["path"]).parent.name + ".zip"
         return send_file(archive, as_attachment=True, download_name=name)
+
+    def settings_json() -> dict:
+        return {
+            "output_dir": str(registry.output_dir),
+            "default_output_dir": str(registry.default_output_dir),
+            "is_default": "output_dir" not in registry.settings,
+        }
+
+    @app.get("/api/settings")
+    def get_settings():
+        return jsonify(settings_json())
+
+    @app.post("/api/settings")
+    def set_settings():
+        body = request.get_json(silent=True) or {}
+        try:
+            registry.set_output_dir((body.get("output_dir") or "").strip() or None)
+        except UserError as exc:
+            return error(exc)
+        return jsonify(settings_json())
 
     return app
