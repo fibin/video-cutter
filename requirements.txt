@@ -4,3 +4,5 @@ yt-dlp[default]>=2026.8.19
 deno>=2.0
 # Bundled ffmpeg, used when ffmpeg is not installed on the system.
 imageio-ffmpeg>=0.6
+# Native app window (Edge WebView2 on Windows, WebKit on macOS); Linux falls back to the browser.
+pywebview>=5; sys_platform == "win32" or sys_platform == "darwin"

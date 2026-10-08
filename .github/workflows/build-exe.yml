@@ -1,0 +1,42 @@
+name: build-exe
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed to publish the release on tags
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt pyinstaller
+      - run: pyinstaller --noconfirm packaging/VideoCutter.spec
+
+      - name: Self-test the built exe
+        shell: pwsh
+        run: |
+          # The exe is a windowed app, so wait for it explicitly and read its exit code.
+          $p = Start-Process -FilePath dist\VideoCutter.exe -ArgumentList "--self-test", "report.txt" -Wait -PassThru
+          Get-Content report.txt
+          if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
+          "Size: {0:N0} MB" -f ((Get-Item dist\VideoCutter.exe).Length / 1MB)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VideoCutter-windows
+          path: dist/VideoCutter.exe
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" dist/VideoCutter.exe --title "Video Cutter ${{ github.ref_name }}" --notes "Download VideoCutter.exe and double-click it. No installation needed."

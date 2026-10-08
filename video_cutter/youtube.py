@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Callable
 
@@ -13,6 +14,15 @@ DownloadProgress = Callable[[float | None, float | None, float | None], None]
 
 class DownloadError(RuntimeError):
     pass
+
+
+def js_runtimes() -> dict | None:
+    """In a packaged exe, point yt-dlp at the bundled deno; otherwise let it find deno itself."""
+    bundle = getattr(sys, "_MEIPASS", None)
+    if not bundle:
+        return None
+    deno = Path(bundle) / ("deno.exe" if sys.platform == "win32" else "deno")
+    return {"deno": {"path": str(deno)}} if deno.exists() else None
 
 
 def download(url: str, target_dir: Path, on_progress: DownloadProgress | None = None) -> tuple[Path, str]:
@@ -44,6 +54,8 @@ def download(url: str, target_dir: Path, on_progress: DownloadProgress | None = 
         "progress_hooks": [hook],
         "ffmpeg_location": ffmpeg_path(),
     }
+    if runtimes := js_runtimes():
+        options["js_runtimes"] = runtimes
     try:
         with yt_dlp.YoutubeDL(options) as ydl:
             info = ydl.extract_info(url, download=True)
