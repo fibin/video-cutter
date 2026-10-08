@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Cutter</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Video Cutter</h1>
+    <p class="muted">Pick a video, mark the pieces you need and get them joined into one file.</p>
+  </header>
+
+  <!-- Step 1: source -->
+  <section class="card" id="step-source">
+    <h2><span class="num">1</span> Video</h2>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="file" role="tab">File from computer</button>
+      <button class="tab" data-tab="link" role="tab">YouTube link</button>
+    </div>
+
+    <div class="tab-panel" data-panel="file">
+      <label class="drop" id="drop">
+        <input type="file" id="file-input" accept="video/*,.mkv,.mov,.avi,.webm,.mp4,.m4v,.ts">
+        <span><strong>Drop a file here</strong> or click to choose one</span>
+      </label>
+    </div>
+
+    <div class="tab-panel hidden" data-panel="link">
+      <form id="link-form" class="row">
+        <input type="url" id="link-input" placeholder="https://www.youtube.com/watch?v=..." required>
+        <button type="submit" class="primary">Download</button>
+      </form>
+    </div>
+
+    <div class="progress-block hidden" id="source-progress">
+      <div class="progress-head"><span class="stage"></span><span class="pct"></span></div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="detail muted"></div>
+    </div>
+    <p class="error hidden" id="source-error"></p>
+  </section>
+
+  <!-- Step 2: segments -->
+  <section class="card hidden" id="step-segments">
+    <h2><span class="num">2</span> Segments</h2>
+    <p class="muted" id="source-title"></p>
+    <video id="player" controls preload="metadata"></video>
+    <div class="player-time muted">Position: <span id="current-time">00:00</span> of <span id="total-time"></span></div>
+
+    <div class="mode">
+      <label><input type="radio" name="mode" value="keep" checked> Keep these pieces and join them</label>
+      <label><input type="radio" name="mode" value="remove"> Remove these pieces, keep the rest</label>
+    </div>
+
+    <p class="hint muted">Write times as <code>1:30</code>, <code>01:02:03.5</code> or in seconds <code>90</code>. The ⏱ button takes the current player position. An empty end means "until the end of the video".</p>
+
+    <div id="segments"></div>
+    <div class="row">
+      <button id="add-segment">+ Add segment</button>
+      <span class="muted" id="segments-total"></span>
+    </div>
+  </section>
+
+  <!-- Step 3: result -->
+  <section class="card hidden" id="step-result">
+    <h2><span class="num">3</span> Result</h2>
+    <button class="primary big" id="cut-button">Cut</button>
+    <div class="progress-block hidden" id="cut-progress">
+      <div class="progress-head"><span class="stage"></span><span class="pct"></span></div>
+      <div class="bar"><div class="fill"></div></div>
+      <div class="detail muted"></div>
+    </div>
+    <p class="error hidden" id="cut-error"></p>
+    <div class="hidden" id="result">
+      <video id="result-player" controls preload="metadata"></video>
+      <div class="row">
+        <a class="button primary" id="download-link" href="#">Download result</a>
+        <span class="muted" id="result-info"></span>
+      </div>
+      <p class="muted small">The file is also saved here: <code id="result-path"></code></p>
+    </div>
+  </section>
+</main>
+
+<template id="segment-template">
+  <div class="segment">
+    <span class="seg-num"></span>
+    <label>from <input class="seg-start" placeholder="0:00"></label>
+    <button class="icon set-start" title="Use the current player position">⏱</button>
+    <label>to <input class="seg-end" placeholder="end"></label>
+    <button class="icon set-end" title="Use the current player position">⏱</button>
+    <button class="icon play" title="Play this piece">▶</button>
+    <button class="icon remove" title="Remove">✕</button>
+  </div>
+</template>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

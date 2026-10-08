@@ -1,0 +1,6 @@
+flask>=3.0
+yt-dlp[default]>=2026.8.19
+# JavaScript runtime that yt-dlp needs for YouTube; found automatically inside the venv.
+deno>=2.0
+# Bundled ffmpeg, used when ffmpeg is not installed on the system.
+imageio-ffmpeg>=0.6
