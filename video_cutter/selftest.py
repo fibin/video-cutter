@@ -31,7 +31,13 @@ def _check_ffmpeg_cut(workdir: Path) -> str:
     duration = ffmpeg_tools.probe(out).duration
     if abs(duration - 2.5) > 0.1:
         raise AssertionError(f"expected 2.5 s, got {duration}")
-    return f"cut ok ({duration:.2f} s) with {ffmpeg_tools.ffmpeg_path()}"
+    joined = ffmpeg_tools.join_videos(
+        [(clip, ffmpeg_tools.probe(clip)), (out, ffmpeg_tools.probe(out))], workdir / "joined.mp4"
+    )
+    joined_duration = ffmpeg_tools.probe(joined).duration
+    if abs(joined_duration - 8.5) > 0.2:
+        raise AssertionError(f"expected 8.5 s after joining, got {joined_duration}")
+    return f"cut and join ok ({duration:.2f} s, {joined_duration:.2f} s) with {ffmpeg_tools.ffmpeg_path()}"
 
 
 def _check_web_app(workdir: Path) -> str:

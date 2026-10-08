@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .messages import UserError
+
 _TIME_RE = re.compile(r"^\s*(?:(\d+):)?(?:(\d+):)?(\d+(?:[.,]\d+)?)\s*$")
 
 
@@ -25,7 +27,7 @@ def parse_time(value: str | int | float) -> float:
     else:
         match = _TIME_RE.match(str(value))
         if not match:
-            raise ValueError(f"Invalid time format: {value!r}")
+            raise UserError("time_invalid", value=str(value))
         first, second, secs = match.groups()
         if second is not None:
             hours, minutes = int(first), int(second)
@@ -35,7 +37,7 @@ def parse_time(value: str | int | float) -> float:
             hours, minutes = 0, 0
         seconds = hours * 3600 + minutes * 60 + float(secs.replace(",", "."))
     if seconds < 0:
-        raise ValueError("Time cannot be negative")
+        raise UserError("time_negative")
     return seconds
 
 
@@ -58,33 +60,33 @@ def build_segments(raw: list[dict], duration: float | None, mode: str = "keep") 
     mode="remove": the given segments are cut out and the rest is kept.
     """
     if not raw:
-        raise ValueError("Add at least one segment")
+        raise UserError("segments_empty")
     segments = []
     for index, item in enumerate(raw, start=1):
         start = parse_time(item.get("start", ""))
         end_value = item.get("end", "")
         if end_value in ("", None):
             if duration is None:
-                raise ValueError(f"Segment {index}: set the end")
+                raise UserError("segment_end_missing", index=index)
             end = duration
         else:
             end = parse_time(end_value)
         if duration is not None:
             if start >= duration:
-                raise ValueError(
-                    f"Segment {index}: start {format_time(start)} is after the end of the video ({format_time(duration)})"
+                raise UserError(
+                    "segment_start_after_video", index=index, start=format_time(start), duration=format_time(duration)
                 )
             end = min(end, duration)
         if end <= start:
-            raise ValueError(f"Segment {index}: the end must be after the start")
+            raise UserError("segment_end_before_start", index=index)
         segments.append(Segment(start, end))
 
     if mode == "keep":
         return segments
     if mode != "remove":
-        raise ValueError(f"Unknown mode: {mode}")
+        raise UserError("mode_unknown", mode=mode)
     if duration is None:
-        raise ValueError("Could not determine the video duration")
+        raise UserError("duration_unknown")
 
     keep: list[Segment] = []
     cursor = 0.0
@@ -97,5 +99,5 @@ def build_segments(raw: list[dict], duration: float | None, mode: str = "keep") 
     # Drop slivers shorter than one frame at 60 fps.
     keep = [s for s in keep if s.duration > 1 / 60]
     if not keep:
-        raise ValueError("Nothing is left after removing these segments")
+        raise UserError("nothing_left")
     return keep
