@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+import sys
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,13 +17,20 @@ ProgressCallback = Callable[[float, int, int], None]
 """Called with (fraction 0..1, current piece 1-based, total pieces)."""
 
 
+# Keep ffmpeg from flashing a console window when the app runs as a windowed exe.
+NO_WINDOW: dict = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
+
+
 class FFmpegError(RuntimeError):
     pass
 
 
 def ffmpeg_path() -> str:
-    """Use ffmpeg from PATH, otherwise the copy bundled with imageio-ffmpeg."""
-    found = shutil.which("ffmpeg")
+    """Use ffmpeg from PATH, otherwise the copy bundled with imageio-ffmpeg.
+
+    A packaged exe always uses its bundled copy, so it behaves the same on every machine.
+    """
+    found = None if getattr(sys, "frozen", False) else shutil.which("ffmpeg")
     if found:
         return found
     try:
@@ -50,6 +58,7 @@ def probe(path: Path) -> MediaInfo:
         text=True,
         encoding="utf-8",
         errors="replace",
+        **NO_WINDOW,
     )
     output = result.stderr
     match = _DURATION_RE.search(output)
@@ -132,6 +141,7 @@ def cut_and_join(
         text=True,
         encoding="utf-8",
         errors="replace",
+        **NO_WINDOW,
     )
     # stderr is drained in a thread so a chatty ffmpeg never blocks on a full pipe.
     err_lines: list[str] = []

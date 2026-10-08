@@ -1,7 +1,7 @@
 "use strict";
 
 const $ = (sel) => document.querySelector(sel);
-const state = { source: null, playUntil: null };
+const state = { source: null, playUntil: null, desktop: false, resultJobId: null, resultPath: null };
 
 // ---------- time helpers ----------
 function parseTime(text) {
@@ -265,6 +265,9 @@ $("#cut-button").addEventListener("click", async () => {
     }));
     showProgress(progress, { stage: "Done", percent: 100, detail: `in ${formatTime(Math.floor(done.elapsed))}` });
     const r = done.result;
+    state.resultJobId = done.id;
+    state.resultPath = r.path;
+    $("#saved-note").classList.add("hidden");
     $("#result-player").src = r.preview_url;
     $("#download-link").href = r.download_url;
     $("#result-info").textContent = `${r.pieces} ${r.pieces === 1 ? "piece" : "pieces"} · ${r.duration_text}`;
@@ -276,4 +279,32 @@ $("#cut-button").addEventListener("click", async () => {
   } finally {
     button.disabled = false;
   }
+});
+
+// ---------- desktop window (pywebview) ----------
+// In the app window there is no browser download bar, so "Download" opens a Save dialog instead.
+function enableDesktop() {
+  state.desktop = true;
+  $("#download-link").textContent = "Save as...";
+  document.querySelectorAll(".desktop-only").forEach((el) => el.classList.remove("hidden"));
+}
+if (window.pywebview && window.pywebview.api) enableDesktop();
+else window.addEventListener("pywebviewready", enableDesktop);
+
+$("#download-link").addEventListener("click", async (e) => {
+  if (!state.desktop) return;
+  e.preventDefault();
+  const note = $("#saved-note");
+  try {
+    const res = await window.pywebview.api.save_result(state.resultJobId);
+    if (res.cancelled) return;
+    note.textContent = res.error ? res.error : `Saved: ${res.saved}`;
+  } catch (err) {
+    note.textContent = `Could not save: ${err.message || err}`;
+  }
+  note.classList.remove("hidden");
+});
+
+$("#show-folder").addEventListener("click", () => {
+  if (state.desktop && state.resultPath) window.pywebview.api.show_in_folder(state.resultPath);
 });
