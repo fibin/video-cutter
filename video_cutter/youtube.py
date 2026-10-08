@@ -7,12 +7,13 @@ from pathlib import Path
 from typing import Callable
 
 from .ffmpeg_tools import ffmpeg_path
+from .messages import UserError
 
 DownloadProgress = Callable[[float | None, float | None, float | None], None]
 """Called with (fraction 0..1 or None, speed bytes/s or None, eta seconds or None)."""
 
 
-class DownloadError(RuntimeError):
+class DownloadError(UserError):
     pass
 
 
@@ -30,7 +31,7 @@ def download(url: str, target_dir: Path, on_progress: DownloadProgress | None = 
     try:
         import yt_dlp
     except ImportError as exc:  # pragma: no cover - dependency is in requirements
-        raise DownloadError("yt-dlp is not installed. Run: pip install -r requirements.txt") from exc
+        raise DownloadError("ytdlp_missing") from exc
 
     target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -63,13 +64,13 @@ def download(url: str, target_dir: Path, on_progress: DownloadProgress | None = 
     except yt_dlp.utils.DownloadError as exc:
         # Drop yt-dlp's "ERROR:" prefix and its "please report this issue" tail.
         message = str(exc).removeprefix("ERROR: ").split("; please report")[0]
-        raise DownloadError(f"Could not download the video: {message}") from exc
+        raise DownloadError("download_failed", detail=message) from exc
 
     # After merging, the real file may have a different extension than prepare_filename reports.
     if not path.exists():
         candidates = sorted(target_dir.glob("source.*"))
         candidates = [c for c in candidates if not c.name.endswith((".part", ".ytdl"))]
         if not candidates:
-            raise DownloadError("The video was downloaded but the file was not found")
+            raise DownloadError("download_file_missing")
         path = candidates[0]
     return path, info.get("title") or "video"

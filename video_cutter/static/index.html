@@ -8,94 +8,190 @@
 </head>
 <body>
 <main>
-  <header>
-    <h1>Video Cutter</h1>
-    <p class="muted">Pick a video, mark the pieces you need and get them joined into one file.</p>
+  <header class="top">
+    <div>
+      <h1>Video Cutter</h1>
+      <p class="muted" data-i18n="app_subtitle"></p>
+    </div>
+    <div class="lang" role="group" data-i18n-title="lang_label">
+      <button data-lang="en">EN</button>
+      <button data-lang="uk">UA</button>
+    </div>
   </header>
 
-  <!-- Step 1: source -->
-  <section class="card" id="step-source">
-    <h2><span class="num">1</span> Video</h2>
-    <div class="tabs" role="tablist">
-      <button class="tab active" data-tab="file" role="tab">File from computer</button>
-      <button class="tab" data-tab="link" role="tab">YouTube link</button>
+  <section class="output-bar" id="output-bar">
+    <div class="output-line">
+      <span data-i18n="output_label"></span>
+      <code id="output-dir"></code>
+      <button class="link" id="output-change" data-i18n="output_change"></button>
+      <button class="link desktop-only" id="output-open" data-i18n="output_open"></button>
+      <button class="link hidden" id="output-reset" data-i18n="output_reset"></button>
     </div>
-
-    <div class="tab-panel" data-panel="file">
-      <label class="drop" id="drop">
-        <input type="file" id="file-input" accept="video/*,.mkv,.mov,.avi,.webm,.mp4,.m4v,.ts">
-        <span><strong>Drop a file here</strong> or click to choose one</span>
-      </label>
-    </div>
-
-    <div class="tab-panel hidden" data-panel="link">
-      <form id="link-form" class="row">
-        <input type="url" id="link-input" placeholder="https://www.youtube.com/watch?v=..." required>
-        <button type="submit" class="primary">Download</button>
-      </form>
-    </div>
-
-    <div class="progress-block hidden" id="source-progress">
-      <div class="progress-head"><span class="stage"></span><span class="pct"></span></div>
-      <div class="bar"><div class="fill"></div></div>
-      <div class="detail muted"></div>
-    </div>
-    <p class="error hidden" id="source-error"></p>
+    <form class="row hidden" id="output-form">
+      <input type="text" id="output-input" data-i18n-placeholder="output_placeholder">
+      <button class="primary" type="submit" data-i18n="output_save"></button>
+      <button type="button" id="output-cancel" data-i18n="cancel"></button>
+    </form>
+    <div class="error small hidden" id="output-error"></div>
   </section>
 
-  <!-- Step 2: segments -->
-  <section class="card hidden" id="step-segments">
-    <h2><span class="num">2</span> Segments</h2>
-    <p class="muted" id="source-title"></p>
-    <video id="player" controls preload="metadata"></video>
-    <div class="player-time muted">Position: <span id="current-time">00:00</span> of <span id="total-time"></span></div>
-
-    <div class="mode">
-      <label><input type="radio" name="mode" value="keep" checked> Keep these pieces and join them</label>
-      <label><input type="radio" name="mode" value="remove"> Remove these pieces, keep the rest</label>
+  <nav class="tabbar">
+    <div class="tabs-list" id="tabs-list" role="tablist"></div>
+    <div class="tab-actions">
+      <button id="new-cut" data-i18n="new_cut"></button>
+      <button id="new-join" data-i18n="new_join"></button>
     </div>
+  </nav>
 
-    <p class="hint muted">Write times as <code>1:30</code>, <code>01:02:03.5</code> or in seconds <code>90</code>. The ⏱ button takes the current player position. An empty end means "until the end of the video".</p>
-
-    <div id="segments"></div>
-    <div class="row">
-      <button id="add-segment">+ Add segment</button>
-      <span class="muted" id="segments-total"></span>
-    </div>
-  </section>
-
-  <!-- Step 3: result -->
-  <section class="card hidden" id="step-result">
-    <h2><span class="num">3</span> Result</h2>
-    <button class="primary big" id="cut-button">Cut</button>
-    <div class="progress-block hidden" id="cut-progress">
-      <div class="progress-head"><span class="stage"></span><span class="pct"></span></div>
-      <div class="bar"><div class="fill"></div></div>
-      <div class="detail muted"></div>
-    </div>
-    <p class="error hidden" id="cut-error"></p>
-    <div class="hidden" id="result">
-      <video id="result-player" controls preload="metadata"></video>
-      <div class="row">
-        <a class="button primary" id="download-link" href="#">Download result</a>
-        <span class="muted" id="result-info"></span>
-      </div>
-      <p class="muted small">The file is also saved here: <code id="result-path"></code>
-        <button class="link desktop-only hidden" id="show-folder">Show in folder</button></p>
-      <p class="muted small hidden" id="saved-note"></p>
-    </div>
-  </section>
+  <div id="panels"></div>
 </main>
 
-<template id="segment-template">
-  <div class="segment">
+<!-- Confirmation dialog -->
+<div class="modal hidden" id="modal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h3 class="modal-title"></h3>
+    <p class="modal-body"></p>
+    <div class="row end">
+      <button class="modal-cancel" data-i18n="cancel"></button>
+      <button class="primary modal-ok" data-i18n="continue"></button>
+    </div>
+  </div>
+</div>
+
+<template id="tpl-tab">
+  <div class="tab" role="tab" tabindex="0">
+    <span class="tab-status"></span>
+    <span class="tab-title"></span>
+    <button class="tab-close" data-i18n-title="close_tab">✕</button>
+  </div>
+</template>
+
+<template id="tpl-progress">
+  <div class="progress-block hidden">
+    <div class="progress-head"><span class="stage"></span><span class="pct"></span></div>
+    <div class="bar"><div class="fill"></div></div>
+    <div class="detail muted"></div>
+  </div>
+</template>
+
+<!-- A "cut one video" tab -->
+<template id="tpl-cut">
+  <section class="panel">
+    <div class="card step-source">
+      <h2><span class="num">1</span> <span data-i18n="sec_video"></span></h2>
+      <div class="subtabs">
+        <button class="subtab active" data-sub="file" data-i18n="from_file"></button>
+        <button class="subtab" data-sub="link" data-i18n="from_link"></button>
+      </div>
+      <div class="sub-panel" data-sub-panel="file">
+        <label class="drop">
+          <input type="file" class="file-input" accept="video/*,.mkv,.mov,.avi,.webm,.mp4,.m4v,.ts">
+          <span data-i18n-html="drop_one"></span>
+        </label>
+      </div>
+      <div class="sub-panel hidden" data-sub-panel="link">
+        <form class="row link-form">
+          <input type="url" class="link-input" placeholder="https://www.youtube.com/watch?v=..." required>
+          <button type="submit" class="primary" data-i18n="download_btn"></button>
+        </form>
+      </div>
+      <div class="source-progress"></div>
+      <div class="error hidden source-error"></div>
+    </div>
+
+    <div class="card step-segments hidden">
+      <h2><span class="num">2</span> <span data-i18n="sec_segments"></span></h2>
+      <p class="muted source-title"></p>
+      <video class="player" controls preload="metadata"></video>
+      <div class="player-time muted"></div>
+
+      <div class="options">
+        <label><input type="radio" class="mode" value="keep" checked> <span data-i18n="mode_keep"></span></label>
+        <label><input type="radio" class="mode" value="remove"> <span data-i18n="mode_remove"></span></label>
+        <label><input type="checkbox" class="separate"> <span data-i18n="separate"></span></label>
+      </div>
+
+      <p class="hint muted" data-i18n-html="hint_time"></p>
+
+      <div class="segments sortable"></div>
+      <div class="row">
+        <button class="add-segment" data-i18n="add_segment"></button>
+        <span class="muted segments-total"></span>
+      </div>
+    </div>
+
+    <div class="card step-result hidden">
+      <h2><span class="num">3</span> <span data-i18n="sec_result"></span></h2>
+      <button class="primary big run-button" data-i18n="cut_btn"></button>
+      <div class="run-progress"></div>
+      <div class="error hidden run-error"></div>
+      <div class="result hidden"></div>
+    </div>
+  </section>
+</template>
+
+<!-- A "join several videos" tab -->
+<template id="tpl-join">
+  <section class="panel">
+    <div class="card">
+      <h2><span class="num">1</span> <span data-i18n="sec_join_videos"></span></h2>
+      <div class="subtabs">
+        <button class="subtab active" data-sub="file" data-i18n="from_file"></button>
+        <button class="subtab" data-sub="link" data-i18n="from_link"></button>
+      </div>
+      <div class="sub-panel" data-sub-panel="file">
+        <label class="drop">
+          <input type="file" class="file-input" multiple accept="video/*,.mkv,.mov,.avi,.webm,.mp4,.m4v,.ts">
+          <span data-i18n-html="drop_many"></span>
+        </label>
+      </div>
+      <div class="sub-panel hidden" data-sub-panel="link">
+        <form class="row link-form">
+          <input type="url" class="link-input" placeholder="https://www.youtube.com/watch?v=..." required>
+          <button type="submit" class="primary" data-i18n="add_link"></button>
+        </form>
+      </div>
+      <p class="hint muted" data-i18n="join_hint"></p>
+      <div class="join-items sortable"></div>
+      <p class="muted join-total"></p>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span> <span data-i18n="sec_result"></span></h2>
+      <button class="primary big run-button" data-i18n="join_btn" disabled></button>
+      <div class="run-progress"></div>
+      <div class="error hidden run-error"></div>
+      <div class="result hidden"></div>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-segment">
+  <div class="segment item" draggable="true">
+    <span class="handle" data-i18n-title="drag_to_reorder">⋮⋮</span>
     <span class="seg-num"></span>
-    <label>from <input class="seg-start" placeholder="0:00"></label>
-    <button class="icon set-start" title="Use the current player position">⏱</button>
-    <label>to <input class="seg-end" placeholder="end"></label>
-    <button class="icon set-end" title="Use the current player position">⏱</button>
-    <button class="icon play" title="Play this piece">▶</button>
-    <button class="icon remove" title="Remove">✕</button>
+    <label><span data-i18n="seg_from"></span> <input class="seg-start" placeholder="0:00"></label>
+    <button class="icon set-start" data-i18n-title="use_position">⏱</button>
+    <label><span data-i18n="seg_to"></span> <input class="seg-end" data-i18n-placeholder="seg_end_placeholder"></label>
+    <button class="icon set-end" data-i18n-title="use_position">⏱</button>
+    <button class="icon play" data-i18n-title="play_piece">▶</button>
+    <button class="icon up" data-i18n-title="move_up">↑</button>
+    <button class="icon down" data-i18n-title="move_down">↓</button>
+    <button class="icon remove" data-i18n-title="remove">✕</button>
+  </div>
+</template>
+
+<template id="tpl-join-item">
+  <div class="join-item item" draggable="true">
+    <span class="handle" data-i18n-title="drag_to_reorder">⋮⋮</span>
+    <span class="seg-num"></span>
+    <div class="join-item-main">
+      <div class="join-item-title"></div>
+      <div class="join-item-status muted small"></div>
+    </div>
+    <button class="icon up" data-i18n-title="move_up">↑</button>
+    <button class="icon down" data-i18n-title="move_down">↓</button>
+    <button class="icon remove" data-i18n-title="remove">✕</button>
   </div>
 </template>
 

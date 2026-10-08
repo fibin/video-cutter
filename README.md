@@ -32,13 +32,21 @@ The first start takes a few minutes while dependencies download. On Windows and 
 
 ## How to use
 
+The app works in tabs, like a browser. Each tab cuts one video or joins several, and tabs run at the same time: start one, open another with **+ Cut a video** or **+ Join videos**, and keep working. Two videos are encoded at once; the rest wait in a queue (shown as ⏳ on the tab). The **EN / UA** switch in the top right corner changes the language.
+
+Finished videos are saved straight into the folder shown under **Save results to** (by default `VideoCutter/results` in your home folder). Click **Change...** to pick another folder; the app remembers it. Old results are never overwritten: a second cut of the same video is saved as `... - cut (2).mp4`.
+
+**Cut a video**
+
 1. **Video.** Drop a file into the window or click to choose one. For YouTube, open the "YouTube link" tab, paste the link and press "Download".
-2. **Segments.** Set the start and end of each piece. Times can be written as `1:30`, `01:02:03.5` or in seconds (`90`). The ⏱ button inserts the current player position, ▶ plays the piece so you can check it. An empty end means "until the end of the video".
-3. **Cut.** Press the button, wait for the progress bar to fill and save the result.
+2. **Segments.** Set the start and end of each piece. Times can be written as `1:30`, `01:02:03.5` or in seconds (`90`). ⏱ inserts the current player position, ▶ plays the piece. An empty end means "until the end of the video". Pieces are joined in the order of the list: drag ⋮⋮ or use ↑ ↓ to change it. Choose whether to **keep** these pieces or **remove** them and keep the rest, and tick **Save each piece as a separate file** to get one file per piece instead of one joined video.
+3. **Cut.** Press the button, wait for the progress bar and save the result. If a result is already there, the app asks before replacing it.
 
-Results and downloaded videos are stored in a `VideoCutter` folder in your home folder (for example `C:\Users\<name>\VideoCutter` on Windows). You can clean it out at any time. Set the `VIDEO_CUTTER_DATA` environment variable to use another folder.
+**Join videos**
 
-Only download YouTube videos you have the rights or the author's permission to use.
+1. Drop several videos (or add YouTube links one by one).
+2. Put them in order by dragging ⋮⋮ or with ↑ ↓.
+3. Press **Join**. Videos of a different size are fitted into the first video's frame with black bars, and videos without sound get silence.
 
 ## Troubleshooting
 
@@ -59,9 +67,10 @@ python -m venv .venv
 How it works:
 
 - `video_cutter/timecode.py`: parsing times and segment lists, including the "remove" mode.
-- `video_cutter/ffmpeg_tools.py`: cutting and joining in a single ffmpeg run. Each piece is a separate input with an accurate `-ss/-t`, pieces are joined with the `concat` filter, and progress is read from `-progress`.
+- `video_cutter/ffmpeg_tools.py`: cutting and joining in a single ffmpeg run. Each piece is a separate input with an accurate `-ss/-t`, pieces are joined with the `concat` filter, and progress is read from `-progress`. Joining whole videos scales and pads them to the first one's frame and fills missing audio with silence.
 - `video_cutter/youtube.py`: downloading with yt-dlp, with progress.
-- `video_cutter/app.py`: local Flask server. Uploads, downloads and cuts run in the background; the UI polls their status.
+- `video_cutter/app.py`: local Flask server. Uploads, downloads, cuts and joins run in the background; the UI polls their status. Encodes share a queue (`VIDEO_CUTTER_PARALLEL`, default 2).
 - `video_cutter/desktop.py`: the native window (pywebview) with a Save dialog and "Show in folder".
-- `video_cutter/static/`: plain HTML, CSS and JS UI, no build step.
+- `video_cutter/messages.py`: message keys sent to the UI instead of finished sentences.
+- `video_cutter/static/`: plain HTML, CSS and JS UI, no build step. `i18n.json` holds the English and Ukrainian texts.
 - `packaging/`: PyInstaller spec for the single-file exe. `pyinstaller packaging/VideoCutter.spec` builds it; `VideoCutter.exe --self-test report.txt` checks a build. CI builds it on every push. A push to `main` publishes a release for the version in `video_cutter/__init__.py` if that version is not released yet, so bump `__version__` to ship a new one.
