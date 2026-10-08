@@ -64,4 +64,4 @@ How it works:
 - `video_cutter/app.py`: local Flask server. Uploads, downloads and cuts run in the background; the UI polls their status.
 - `video_cutter/desktop.py`: the native window (pywebview) with a Save dialog and "Show in folder".
 - `video_cutter/static/`: plain HTML, CSS and JS UI, no build step.
-- `packaging/`: PyInstaller spec for the single-file exe. `pyinstaller packaging/VideoCutter.spec` builds it; `VideoCutter.exe --self-test report.txt` checks a build. CI builds it on every push, and pushing a `v*` tag publishes it as a release.
+- `packaging/`: PyInstaller spec for the single-file exe. `pyinstaller packaging/VideoCutter.spec` builds it; `VideoCutter.exe --self-test report.txt` checks a build. CI builds it on every push. A push to `main` publishes a release for the version in `video_cutter/__init__.py` if that version is not released yet, so bump `__version__` to ship a new one.
