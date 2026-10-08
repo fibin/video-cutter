@@ -74,24 +74,24 @@ def create_app(data_dir: Path | None = None) -> Flask:
     def from_link():
         url = (request.get_json(silent=True) or {}).get("url", "").strip()
         if not url.startswith(("http://", "https://")):
-            return error("Вставьте ссылку, которая начинается с http:// или https://")
+            return error("Paste a link that starts with http:// or https://")
         source_id = registry.new_id()
         folder = registry.source_dir(source_id)
 
         def work(job: Job) -> dict:
-            job.stage = "Скачивание"
+            job.stage = "Downloading"
 
             def on_progress(fraction, speed, eta):
                 job.percent = round(fraction * 100, 1) if fraction is not None else None
                 bits = []
                 if speed:
-                    bits.append(f"{speed / 1024 / 1024:.1f} МБ/с")
+                    bits.append(f"{speed / 1024 / 1024:.1f} MB/s")
                 if eta is not None:
-                    bits.append(f"осталось {format_time(eta)}")
+                    bits.append(f"{format_time(eta)} left")
                 job.detail = ", ".join(bits)
 
             path, title = youtube.download(url, folder, on_progress)
-            job.stage = "Проверка файла"
+            job.stage = "Checking the file"
             job.detail = ""
             source = register_file(source_id, path, title)
             return {"source": source_json(source)}
@@ -109,22 +109,22 @@ def create_app(data_dir: Path | None = None) -> Flask:
         body = request.get_json(silent=True) or {}
         source = registry.get_source(body.get("source_id", ""))
         if not source:
-            return error("Сначала выберите видео")
+            return error("Choose a video first")
         try:
             segments = build_segments(body.get("segments") or [], source.duration, body.get("mode", "keep"))
         except ValueError as exc:
             return error(str(exc))
 
         out_dir = registry.data_dir / "results"
-        base = safe_filename(f"{source.title} - нарезка")
+        base = safe_filename(f"{source.title} - cut")
 
         def work(job: Job) -> dict:
-            job.stage = "Нарезка"
+            job.stage = "Cutting"
             output = out_dir / f"{base}-{job.id}.mp4"
 
             def on_progress(fraction, piece, total):
                 job.percent = round(fraction * 100, 1)
-                job.detail = f"кусок {piece} из {total}"
+                job.detail = f"piece {piece} of {total}"
 
             info = ffmpeg_tools.MediaInfo(source.duration, True, source.has_audio)
             ffmpeg_tools.cut_and_join(source.path, segments, output, on_progress, info)

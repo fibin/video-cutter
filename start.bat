@@ -1,13 +1,12 @@
 @echo off
-rem Запуск на Windows: двойной щелчок по start.bat
-chcp 65001 >nul
+rem Start on Windows: double-click start.bat
 cd /d "%~dp0"
 
 if not exist ".venv\Scripts\python.exe" (
-  echo Первый запуск: создаю окружение и ставлю зависимости, это займёт несколько минут...
+  echo First run: creating the environment and installing dependencies, this takes a few minutes...
   py -3 -m venv .venv 2>nul || python -m venv .venv
   if errorlevel 1 (
-    echo Не найден Python. Установите его с https://www.python.org/downloads/ и отметьте "Add python.exe to PATH".
+    echo Python not found. Install it from https://www.python.org/downloads/ and tick "Add python.exe to PATH".
     pause
     exit /b 1
   )

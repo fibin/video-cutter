@@ -25,7 +25,7 @@ def wait_for(client, job_id, timeout=60):
     raise AssertionError("job did not finish")
 
 
-def upload(client, path, name="Мой ролик.mp4"):
+def upload(client, path, name="Мой ролик.mp4"):  # non-ASCII on purpose
     return client.post(
         "/api/upload",
         data=path.read_bytes(),
@@ -57,7 +57,7 @@ def test_upload_cut_download(client, sample_video, tmp_path):
     job = wait_for(client, res.get_json()["id"])
     assert job["state"] == "done", job["error"]
     assert job["percent"] == 100
-    assert job["detail"] == "кусок 2 из 2"
+    assert job["detail"] == "piece 2 of 2"
 
     download = client.get(job["result"]["download_url"])
     assert download.status_code == 200
@@ -82,7 +82,7 @@ def test_bad_segments_rejected(client, sample_video):
     source = upload(client, sample_video).get_json()
     res = client.post("/api/cut", json={"source_id": source["id"], "segments": [{"start": "9", "end": "3"}]})
     assert res.status_code == 400
-    assert "конец" in res.get_json()["error"]
+    assert "end must be after the start" in res.get_json()["error"]
 
 
 def test_upload_non_video(client, tmp_path):
@@ -100,13 +100,13 @@ def test_link_download_uses_youtube_module(client, sample_video, monkeypatch):
         on_progress(0.5, 1024 * 1024, 3)
         target = folder / "source.mp4"
         target.write_bytes(sample_video.read_bytes())
-        return target, "Видео с YouTube"
+        return target, "YouTube video"
 
     monkeypatch.setattr(app_module.youtube, "download", fake_download)
     res = client.post("/api/youtube", json={"url": "https://www.youtube.com/watch?v=abc"})
     job = wait_for(client, res.get_json()["id"])
     assert job["state"] == "done", job["error"]
-    assert job["result"]["source"]["title"] == "Видео с YouTube"
+    assert job["result"]["source"]["title"] == "YouTube video"
 
 
 def test_link_must_be_url(client):

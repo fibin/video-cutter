@@ -28,7 +28,7 @@ def ffmpeg_path() -> str:
     try:
         import imageio_ffmpeg
     except ImportError as exc:  # pragma: no cover - dependency is in requirements
-        raise FFmpegError("ffmpeg не найден. Установите зависимости: pip install -r requirements.txt") from exc
+        raise FFmpegError("ffmpeg not found. Install the dependencies: pip install -r requirements.txt") from exc
     return imageio_ffmpeg.get_ffmpeg_exe()
 
 
@@ -54,13 +54,13 @@ def probe(path: Path) -> MediaInfo:
     output = result.stderr
     match = _DURATION_RE.search(output)
     if not match:
-        raise FFmpegError("Не удалось прочитать файл. Это точно видео?")
+        raise FFmpegError("Could not read the file. Is it really a video?")
     hours, minutes, seconds = match.groups()
     duration = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
     has_video = re.search(r"Stream #.*: Video:", output) is not None
     has_audio = re.search(r"Stream #.*: Audio:", output) is not None
     if not has_video:
-        raise FFmpegError("В файле нет видеодорожки")
+        raise FFmpegError("The file has no video track")
     return MediaInfo(duration=duration, has_video=has_video, has_audio=has_audio)
 
 
@@ -106,7 +106,7 @@ def cut_and_join(
 ) -> Path:
     """Cut `segments` out of `source` (frame-accurate, re-encoded) and join them into `output`."""
     if not segments:
-        raise ValueError("Нет промежутков для нарезки")
+        raise ValueError("No segments to cut")
     info = info or probe(source)
     output.parent.mkdir(parents=True, exist_ok=True)
     cmd = build_cut_command(source, segments, output, info.has_audio)
@@ -147,7 +147,7 @@ def cut_and_join(
     err_thread.join(timeout=5)
     if proc.returncode != 0:
         tail = "".join(err_lines[-15:])
-        raise FFmpegError(f"ffmpeg завершился с ошибкой ({proc.returncode}):\n{tail}")
+        raise FFmpegError(f"ffmpeg failed ({proc.returncode}):\n{tail}")
     if on_progress:
         on_progress(1.0, len(segments), len(segments))
     return output

@@ -23,13 +23,6 @@ function formatTime(seconds) {
   return h ? `${h}:${out}` : out;
 }
 
-function plural(n, one, few, many) {
-  const m10 = n % 10, m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
-  return many;
-}
-
 // ---------- progress UI ----------
 function showProgress(block, { stage, percent, detail }) {
   block.classList.remove("hidden");
@@ -50,11 +43,11 @@ function showError(el, message) {
 async function pollJob(jobId, onUpdate) {
   for (;;) {
     const res = await fetch(`/api/jobs/${jobId}`);
-    if (!res.ok) throw new Error("Задача не найдена. Возможно, приложение перезапускали.");
+    if (!res.ok) throw new Error("Task not found. The app may have been restarted.");
     const job = await res.json();
     onUpdate(job);
     if (job.state === "done") return job;
-    if (job.state === "error") throw new Error(job.error || "Неизвестная ошибка");
+    if (job.state === "error") throw new Error(job.error || "Unknown error");
     await new Promise((r) => setTimeout(r, 500));
   }
 }
@@ -66,7 +59,7 @@ async function postJson(url, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Ошибка сервера (${res.status})`);
+  if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
   return data;
 }
 
@@ -105,7 +98,7 @@ function setSourceBusy(busy) {
 function uploadFile(file) {
   showError(sourceError, "");
   setSourceBusy(true);
-  showProgress(sourceProgress, { stage: `Загрузка «${file.name}»`, percent: 0 });
+  showProgress(sourceProgress, { stage: `Uploading "${file.name}"`, percent: 0 });
   const xhr = new XMLHttpRequest();
   xhr.open("POST", "/api/upload");
   xhr.setRequestHeader("X-Filename", encodeURIComponent(file.name));
@@ -113,29 +106,29 @@ function uploadFile(file) {
     if (!e.lengthComputable) return;
     const mb = (n) => (n / 1024 / 1024).toFixed(1);
     showProgress(sourceProgress, {
-      stage: `Загрузка «${file.name}»`,
+      stage: `Uploading "${file.name}"`,
       percent: (e.loaded / e.total) * 100,
-      detail: `${mb(e.loaded)} из ${mb(e.total)} МБ`,
+      detail: `${mb(e.loaded)} of ${mb(e.total)} MB`,
     });
   };
   xhr.upload.onload = () =>
-    showProgress(sourceProgress, { stage: "Проверка файла", percent: null });
+    showProgress(sourceProgress, { stage: "Checking the file", percent: null });
   xhr.onload = () => {
     setSourceBusy(false);
     let data = {};
     try { data = JSON.parse(xhr.responseText); } catch (_) { /* handled below */ }
     if (xhr.status !== 200) {
       sourceProgress.classList.add("hidden");
-      showError(sourceError, data.error || `Ошибка загрузки (${xhr.status})`);
+      showError(sourceError, data.error || `Upload failed (${xhr.status})`);
       return;
     }
-    showProgress(sourceProgress, { stage: "Готово", percent: 100 });
+    showProgress(sourceProgress, { stage: "Done", percent: 100 });
     setSource(data);
   };
   xhr.onerror = () => {
     setSourceBusy(false);
     sourceProgress.classList.add("hidden");
-    showError(sourceError, "Не удалось загрузить файл. Приложение запущено?");
+    showError(sourceError, "Could not upload the file. Is the app still running?");
   };
   xhr.send(file);
 }
@@ -144,11 +137,11 @@ $("#link-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   showError(sourceError, "");
   setSourceBusy(true);
-  showProgress(sourceProgress, { stage: "Подготовка к скачиванию", percent: null });
+  showProgress(sourceProgress, { stage: "Preparing download", percent: null });
   try {
     const job = await postJson("/api/youtube", { url: $("#link-input").value });
     const done = await pollJob(job.id, (j) => showProgress(sourceProgress, j));
-    showProgress(sourceProgress, { stage: "Готово", percent: 100 });
+    showProgress(sourceProgress, { stage: "Done", percent: 100 });
     setSource(done.result.source);
   } catch (err) {
     sourceProgress.classList.add("hidden");
@@ -165,7 +158,7 @@ const segmentsEl = $("#segments");
 function setSource(source) {
   state.source = source;
   $("#source-title").textContent = `${source.title} · ${source.duration_text}` +
-    (source.has_audio ? "" : " · без звука");
+    (source.has_audio ? "" : " · no audio");
   $("#total-time").textContent = source.duration_text;
   player.src = source.video_url;
   segmentsEl.innerHTML = "";
@@ -218,9 +211,9 @@ function updateTotal() {
   });
   const mode = document.querySelector("input[name=mode]:checked").value;
   const el = $("#segments-total");
-  if (!valid) el.textContent = "Проверьте подсвеченные поля";
-  else if (mode === "keep") el.textContent = `Итоговая длина: ${formatTime(total)}`;
-  else el.textContent = `Будет вырезано: ${formatTime(total)} (если куски не пересекаются)`;
+  if (!valid) el.textContent = "Check the highlighted fields";
+  else if (mode === "keep") el.textContent = `Result length: ${formatTime(total)}`;
+  else el.textContent = `Will be removed: ${formatTime(total)} (if pieces do not overlap)`;
 }
 
 function addSegment() {
@@ -259,7 +252,7 @@ $("#cut-button").addEventListener("click", async () => {
   showError(errorEl, "");
   $("#result").classList.add("hidden");
   button.disabled = true;
-  showProgress(progress, { stage: "Подготовка", percent: 0 });
+  showProgress(progress, { stage: "Preparing", percent: 0 });
   try {
     const job = await postJson("/api/cut", {
       source_id: state.source.id,
@@ -268,13 +261,13 @@ $("#cut-button").addEventListener("click", async () => {
     });
     const done = await pollJob(job.id, (j) => showProgress(progress, {
       ...j,
-      detail: [j.detail, `прошло ${formatTime(Math.floor(j.elapsed))}`].filter(Boolean).join(" · "),
+      detail: [j.detail, `elapsed ${formatTime(Math.floor(j.elapsed))}`].filter(Boolean).join(" · "),
     }));
-    showProgress(progress, { stage: "Готово", percent: 100, detail: `за ${formatTime(Math.floor(done.elapsed))}` });
+    showProgress(progress, { stage: "Done", percent: 100, detail: `in ${formatTime(Math.floor(done.elapsed))}` });
     const r = done.result;
     $("#result-player").src = r.preview_url;
     $("#download-link").href = r.download_url;
-    $("#result-info").textContent = `${r.pieces} ${plural(r.pieces, "кусок", "куска", "кусков")} · ${r.duration_text}`;
+    $("#result-info").textContent = `${r.pieces} ${r.pieces === 1 ? "piece" : "pieces"} · ${r.duration_text}`;
     $("#result-path").textContent = r.path;
     $("#result").classList.remove("hidden");
   } catch (err) {

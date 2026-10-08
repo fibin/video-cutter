@@ -21,20 +21,20 @@ def free_port(preferred: int) -> int:
             except OSError:
                 continue
             return sock.getsockname()[1]
-    raise RuntimeError("Не удалось найти свободный порт")
+    raise RuntimeError("Could not find a free port")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Нарезка видео: локальный веб-интерфейс")
+    parser = argparse.ArgumentParser(description="Video Cutter: local web interface")
     parser.add_argument("--port", type=int, default=8765)
-    parser.add_argument("--no-browser", action="store_true", help="не открывать браузер автоматически")
+    parser.add_argument("--no-browser", action="store_true", help="do not open the browser automatically")
     args = parser.parse_args()
 
     port = free_port(args.port)
     url = f"http://127.0.0.1:{port}"
-    print(f"Video Cutter запущен: {url}")
-    print(f"Файлы хранятся в: {default_data_dir()}")
-    print("Чтобы остановить, нажмите Ctrl+C")
+    print(f"Video Cutter is running at {url}")
+    print(f"Files are stored in: {default_data_dir()}")
+    print("Press Ctrl+C to stop")
     if not args.no_browser:
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
     # Hide the dev-server warning and per-request lines; they only confuse in a local app.

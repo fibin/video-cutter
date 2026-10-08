@@ -1,56 +1,56 @@
 # Video Cutter
 
-Приложение для нарезки видео, которое работает у вас на компьютере. Можно взять файл с диска или ссылку на YouTube, задать один или несколько промежутков и получить одно видео, склеенное из этих кусков.
+A video cutting app that runs on your own computer. Take a file from disk or a YouTube link, set one or more time ranges and get a single video joined from those pieces.
 
-- Два режима: **оставить** выбранные куски и склеить их по порядку или **вырезать** их, а остальное оставить.
-- Режет точно по кадру, а не по ближайшему ключевому кадру.
-- Показывает прогресс загрузки, скачивания с YouTube и нарезки, а при нарезке ещё и какой кусок сейчас обрабатывается.
-- Всё бесплатно и работает локально: внутри Python, [ffmpeg](https://ffmpeg.org/) и [yt-dlp](https://github.com/yt-dlp/yt-dlp). Видео никуда не отправляется.
+- Two modes: **keep** the chosen pieces and join them in order, or **remove** them and keep the rest.
+- Cuts are frame-accurate, not snapped to the nearest keyframe.
+- Progress is shown for uploading, downloading from YouTube and cutting, including which piece is being processed.
+- Free and fully local: built on Python, [ffmpeg](https://ffmpeg.org/) and [yt-dlp](https://github.com/yt-dlp/yt-dlp). Your videos never leave your machine.
 
-## Установка и запуск
+## Install and run
 
-Нужен только **Python 3.10 или новее**. ffmpeg и всё остальное установится само.
+All you need is **Python 3.10 or newer**. ffmpeg and everything else are installed automatically.
 
-1. Установите Python, если его ещё нет: https://www.python.org/downloads/
-   На Windows при установке отметьте галочку **Add python.exe to PATH**.
-2. Скачайте этот репозиторий: зелёная кнопка **Code → Download ZIP**, затем распакуйте архив.
-   Или через git: `git clone https://github.com/fibin/video-cutter.git`
-3. Запустите приложение:
-   - **Windows:** дважды щёлкните `start.bat`.
-   - **macOS / Linux:** в терминале перейдите в папку проекта и выполните `./start.sh`.
+1. Install Python if you don't have it: https://www.python.org/downloads/
+   On Windows, tick **Add python.exe to PATH** in the installer.
+2. Get this repository: green **Code → Download ZIP** button, then unzip it.
+   Or with git: `git clone https://github.com/fibin/video-cutter.git`
+3. Start the app:
+   - **Windows:** double-click `start.bat`.
+   - **macOS / Linux:** open a terminal in the project folder and run `./start.sh`.
 
-Первый запуск занимает несколько минут, потому что скачиваются зависимости. Потом приложение откроется в браузере по адресу http://127.0.0.1:8765. Окно терминала не закрывайте: пока оно открыто, приложение работает. Чтобы остановить его, нажмите `Ctrl+C` или закройте окно.
+The first start takes a few minutes while dependencies download. Then the app opens in your browser at http://127.0.0.1:8765. Keep the terminal window open while you use it; press `Ctrl+C` or close the window to stop.
 
-## Как пользоваться
+## How to use
 
-1. **Видео.** Перетащите файл в окно или нажмите, чтобы выбрать его. Для YouTube откройте вкладку «Ссылка на YouTube», вставьте ссылку и нажмите «Скачать».
-2. **Промежутки.** Для каждого куска укажите начало и конец. Время можно писать как `1:30`, `01:02:03.5` или в секундах (`90`). Кнопка ⏱ подставляет текущую позицию плеера, а ▶ проигрывает кусок, чтобы его проверить. Пустой конец означает «до конца видео».
-3. **Нарезать.** Нажмите кнопку, дождитесь, пока заполнится полоса прогресса, и скачайте результат.
+1. **Video.** Drop a file into the window or click to choose one. For YouTube, open the "YouTube link" tab, paste the link and press "Download".
+2. **Segments.** Set the start and end of each piece. Times can be written as `1:30`, `01:02:03.5` or in seconds (`90`). The ⏱ button inserts the current player position, ▶ plays the piece so you can check it. An empty end means "until the end of the video".
+3. **Cut.** Press the button, wait for the progress bar to fill and download the result.
 
-Результаты и скачанные видео хранятся в папке `VideoCutter` в вашей домашней папке. Например, на Windows это `C:\Users\<имя>\VideoCutter`. Её можно чистить, когда угодно. Другую папку можно задать переменной окружения `VIDEO_CUTTER_DATA`.
+Results and downloaded videos are stored in a `VideoCutter` folder in your home folder (for example `C:\Users\<name>\VideoCutter` on Windows). You can clean it out at any time. Set the `VIDEO_CUTTER_DATA` environment variable to use another folder.
 
-Скачивайте с YouTube только те видео, на которые у вас есть права или разрешение автора.
+Only download YouTube videos you have the rights or the author's permission to use.
 
-## Если что-то не работает
+## Troubleshooting
 
-- **«Не найден Python»:** установите Python (шаг 1) и запустите снова.
-- **YouTube перестал скачивать:** YouTube часто меняет сайт. Обновите yt-dlp командой
-  `.venv/bin/python -m pip install -U "yt-dlp[default]"` (на Windows: `.venv\Scripts\python -m pip install -U "yt-dlp[default]"`).
-- **Странные ошибки после обновления:** удалите папку `.venv` в проекте и запустите снова, зависимости поставятся заново.
+- **"Python not found":** install Python (step 1) and start again.
+- **YouTube downloads stopped working:** YouTube changes often. Update yt-dlp with
+  `.venv/bin/python -m pip install -U "yt-dlp[default]"` (Windows: `.venv\Scripts\python -m pip install -U "yt-dlp[default]"`).
+- **Odd errors after an update:** delete the `.venv` folder in the project and start again; dependencies will be reinstalled.
 
-## Для разработчиков
+## For developers
 
 ```bash
 python -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/python -m pytest -q          # тесты
-.venv/bin/python -m video_cutter       # запуск (--port, --no-browser)
+.venv/bin/python -m pytest -q          # tests
+.venv/bin/python -m video_cutter       # run (--port, --no-browser)
 ```
 
-Как это устроено:
+How it works:
 
-- `video_cutter/timecode.py`: разбор времени и списка промежутков, включая режим «вырезать».
-- `video_cutter/ffmpeg_tools.py`: нарезка и склейка за один запуск ffmpeg. Каждый кусок подаётся отдельным входом с точным `-ss/-t`, куски склеиваются фильтром `concat`, а прогресс читается из `-progress`.
-- `video_cutter/youtube.py`: скачивание через yt-dlp с прогрессом.
-- `video_cutter/app.py`: локальный сервер на Flask. Загрузка, скачивание и нарезка идут в фоне, а интерфейс опрашивает их статус.
-- `video_cutter/static/`: интерфейс на HTML, CSS и JS без сборки.
+- `video_cutter/timecode.py`: parsing times and segment lists, including the "remove" mode.
+- `video_cutter/ffmpeg_tools.py`: cutting and joining in a single ffmpeg run. Each piece is a separate input with an accurate `-ss/-t`, pieces are joined with the `concat` filter, and progress is read from `-progress`.
+- `video_cutter/youtube.py`: downloading with yt-dlp, with progress.
+- `video_cutter/app.py`: local Flask server. Uploads, downloads and cuts run in the background; the UI polls their status.
+- `video_cutter/static/`: plain HTML, CSS and JS UI, no build step.
